@@ -5,23 +5,16 @@ A conversational mock-interview tool that helps you practice for Product Manager
 **How it works**
 
 Ingest — Podcast transcripts are chunked and embedded into a searchable vector store (Chroma), tagged by guest.
-
 Intake — You provide a target company profile, job description, and your CV.
-
 Persona match — The system retrieves the most relevant guest(s) and topics for that role, and builds an interviewer persona grounded in their real frameworks and style.
-
 Interview — A conversational loop: the bot asks role-specific questions, follows up on your answers, and gives a structured debrief at the end — referencing how that expert would actually evaluate your response.
 
 **Stack**
 
 LLM: Sarvam-105B (via Sarvam AI API)
-
 Vector store: Chroma
-
 UI: Streamlit
-
 Hosting: Streamlit Community Cloud
-
 Language: Python
 
 **Status**
