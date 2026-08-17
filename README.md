@@ -22,4 +22,5 @@ Language: Python
 Planned next: text-based mock interviews, followed by a voice mode using Sarvam's Speech-to-Text and Text-to-Speech APIs.
 
 **Why this exists**
-Built as a personal tool to prepare for Product Manager interviews (including Forward Deployed PM roles), and as a hands-on project to learn RAG-based application development.
+
+Built as a hands-on project to learn RAG-based application development, and as a personal tool to prepare for Product Manager interviews.
