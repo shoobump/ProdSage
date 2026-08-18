@@ -1,0 +1,1 @@
+streamlit chromadb sarvamai python-dotenv pypdf python-docx
