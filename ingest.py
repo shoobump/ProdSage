@@ -1,8 +1,7 @@
 import os
-import chromadb
 
-CHUNK_SIZE = 500  # words per chunk
-CHUNK_OVERLAP = 50  # words of overlap between chunks
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
 
 def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     words = text.split()
@@ -16,33 +15,34 @@ def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     return chunks
 
 def guest_name_from_filename(filename):
-    # 'Ada Chen Rekhi.txt' -> 'Ada Chen Rekhi'
     return filename.replace('.txt', '').strip()
 
-client = chromadb.PersistentClient(path='./chroma_db')
-collection = client.get_or_create_collection(name='podcast_transcripts')
+def run_ingestion(collection, transcript_dir='./transcripts'):
+    chunk_id = 0
+    for filename in os.listdir(transcript_dir):
+        if not filename.endswith('.txt'):
+            continue
+        filepath = os.path.join(transcript_dir, filename)
+        with open(filepath, 'r', encoding='utf-8') as f:
+            text = f.read()
 
-transcript_dir = './transcripts'
-chunk_id = 0
+        guest = guest_name_from_filename(filename)
+        chunks = chunk_text(text)
 
-for filename in os.listdir(transcript_dir):
-    if not filename.endswith('.txt'):
-        continue
-    filepath = os.path.join(transcript_dir, filename)
-    with open(filepath, 'r', encoding='utf-8') as f:
-        text = f.read()
+        for chunk in chunks:
+            collection.add(
+                ids=[f'chunk_{chunk_id}'],
+                documents=[chunk],
+                metadatas=[{'guest': guest, 'source_file': filename}]
+            )
+            chunk_id += 1
 
-    guest = guest_name_from_filename(filename)
-    chunks = chunk_text(text)
+        print(f'Ingested {len(chunks)} chunks from {filename} (guest: {guest})')
 
-    for chunk in chunks:
-        collection.add(
-            ids=[f'chunk_{chunk_id}'],
-            documents=[chunk],
-            metadatas=[{'guest': guest, 'source_file': filename}]
-        )
-        chunk_id += 1
+    print(f'Done. Total chunks in vector store: {chunk_id}')
 
-    print(f'Ingested {len(chunks)} chunks from {filename} (guest: {guest})')
-
-print(f'Done. Total chunks in vector store: {chunk_id}')
+if __name__ == '__main__':
+    import chromadb
+    client = chromadb.PersistentClient(path='./chroma_db')
+    collection = client.get_or_create_collection(name='podcast_transcripts')
+    run_ingestion(collection)
