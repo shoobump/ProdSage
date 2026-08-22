@@ -4,7 +4,7 @@ import urllib.request
 import chromadb
 from collections import defaultdict
 
-VECTOR_STORE_URL = 'https://github.com/shoobump/ProdSage/releases/download/v1.0-vectorstore/chroma_db.tar.gz'
+VECTOR_STORE_URL = 'https://github.com/shoobump/ProdSage/releases/download/v2.0-vectorstore/chroma_db.tar.gz'
 
 def ensure_vector_store():
     if os.path.exists('./chroma_db'):
@@ -65,3 +65,9 @@ def get_persona_context(guest_name, topic_query, n_results=8):
         where={'guest': guest_name}
     )
     return results['documents'][0]
+
+
+def get_top_guests(company_profile, job_description, n=4):
+    query = f'{company_profile}\n\n{job_description}'
+    results = guest_index_collection.query(query_texts=[query], n_results=n)
+    return [m['guest'] for m in results['metadatas'][0]]

@@ -7,6 +7,7 @@ load_dotenv()
 
 client = SarvamAI(api_subscription_key=os.getenv('SARVAM_API_KEY'), timeout=60.0)
 
+
 def call_with_retry(messages, retries=3):
     last_error = None
     for attempt in range(retries):
@@ -16,6 +17,7 @@ def call_with_retry(messages, retries=3):
             last_error = e
             print(f'Request failed (attempt {attempt + 1}/{retries}), retrying...')
     raise last_error
+
 
 def build_system_prompt(guest_name, sample_chunks, company_profile, job_description, cv_text):
     sample_material = '\n\n'.join(sample_chunks[:5])
@@ -67,7 +69,7 @@ def start_interview(company_profile, job_description, cv_text):
 
     history.append({'role': 'assistant', 'content': first_message})
 
-    return best_guest, history, first_message
+    return best_guest, history, first_message, sample_chunks
 
 
 def continue_interview(history, user_message):
@@ -79,3 +81,51 @@ def continue_interview(history, user_message):
     history.append({'role': 'assistant', 'content': reply})
 
     return history, reply
+
+
+def generate_debrief(guest_name, history, sample_chunks):
+    sample_material = '\n\n'.join(sample_chunks[:5])
+
+    debrief_prompt = f'''The mock interview is now over. Based on the full conversation above, write a debrief as {guest_name} would genuinely give a candidate afterward.
+
+Ground your evaluation in how {guest_name} actually thinks, based on these excerpts of their real interview style:
+{sample_material}
+
+Structure your debrief with these sections:
+1. **What worked** — 2-3 specific strengths from the candidate's actual answers, referencing what they actually said
+2. **What to sharpen** — 2-3 specific gaps or missed opportunities, referencing what they actually said
+3. **How I'd evaluate this** — a short, honest read on how this would likely land in a real interview at this stage
+
+Be specific and reference actual moments from the conversation — avoid generic feedback. Keep the tone consistent with {guest_name}'s voice: direct but respectful, not a cheerleader.'''
+
+    debrief_history = history + [{'role': 'user', 'content': debrief_prompt}]
+    response = call_with_retry(debrief_history)
+    return response.choices[0].message.content
+
+
+def start_interview_with_guest(guest_name, company_profile, job_description, cv_text):
+    sample_chunks = get_persona_context(guest_name, f'{company_profile}\n\n{job_description}', n_results=8)
+    system_prompt = build_system_prompt(guest_name, sample_chunks, company_profile, job_description, cv_text)
+
+    history = [{'role': 'system', 'content': system_prompt}]
+    response = call_with_retry(history)
+    first_message = response.choices[0].message.content
+    history.append({'role': 'assistant', 'content': first_message})
+
+    return guest_name, history, first_message, sample_chunks
+
+
+def generate_quick_feedback(guest_name, user_answer, sample_chunks):
+    sample_material = '\n\n'.join(sample_chunks[:3])
+
+    prompt = f'''You are {guest_name}, jotting a quick private note to yourself about the candidate's last answer — they won't see this live, it's not spoken.
+
+Candidate's last answer: "{user_answer}"
+
+Style reference for how {guest_name} thinks:
+{sample_material}
+
+Write ONE short, specific observation (1-2 sentences max) about THIS SPECIFIC answer. Note a genuine strength or a genuine gap — something concrete tied to what they actually said. Generic praise like "good answer" is not allowed. Just the note, no preamble.'''
+
+    response = call_with_retry([{'role': 'user', 'content': prompt}])
+    return response.choices[0].message.content
